@@ -10,7 +10,7 @@ Please refer to the [parquet-cli documentation](https://github.com/apache/parque
 First, pull the image from GHCR:
 
 ```bash
-apptainer pull ghcr.io/imageomics/parquet-cli:latest
+apptainer pull oras://ghcr.io/imageomics/parquet-cli:latest
 ```
 
 Move the image to your preferred location:
