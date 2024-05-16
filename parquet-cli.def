@@ -1,0 +1,74 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+# %files
+#     hadoop-3.4.0.tar.gz /usr/hadoop-3.4.0.tar.gz
+
+%post
+    # Install necessary tools
+    apt-get update && apt-get install -y \
+        openjdk-11-jdk \
+        maven \
+        git \
+        build-essential \
+        autoconf \
+        libtool \
+        bison \
+        flex \
+        libboost-all-dev \
+        libevent-dev \
+        libssl-dev \
+        wget
+
+    # Install Thrift
+    wget http://archive.apache.org/dist/thrift/0.20.0/thrift-0.20.0.tar.gz
+    tar xzf thrift-0.20.0.tar.gz
+    cd thrift-0.20.0
+    ./configure --without-python --without-cpp --without-c_glib --without-java --without-erlang --without-nodejs --without-nodets --without-lua --without-perl --without-php --without-php_extension --without-dart --without-ruby --without-haskell --without-go --without-swift --without-rs --without-cl --without-haxe --without-dotnetcore --without-d --without-python_axiom --without-rust --without-flask --without-netstd
+    make && make install
+    cd /
+    rm -rf thrift-0.20.0 thrift-0.20.0.tar.gz
+
+    # Install Hadoop
+    # If file was not copied from host, download during build.
+    wget https://downloads.apache.org/hadoop/common/hadoop-3.4.0/hadoop-3.4.0.tar.gz
+    tar -xzf hadoop-3.4.0.tar.gz -C /opt/
+
+    # If file was copied from host, use it.
+    # tar -xzf /usr/hadoop-3.4.0.tar.gz -C /opt/
+
+    mv /opt/hadoop-3.4.0 /opt/hadoop
+    rm /usr/hadoop-3.4.0.tar.gz
+
+    # Clone and build parquet-mr
+    git clone https://github.com/apache/parquet-mr.git /parquet-mr
+    cd /parquet-mr
+    mvn install -pl parquet-common,parquet-column,parquet-format-structures,parquet-hadoop,parquet-jackson,parquet-avro -am -DskipTests
+    mvn install -pl parquet-cli -am -DskipTests
+
+    # Find and place the parquet-cli jar
+    find /parquet-mr/parquet-cli/target -name 'parquet-cli-*-runtime.jar' -exec cp {} /opt/parquet-cli.jar \;
+
+    # Cleanup
+    apt-get purge -y git maven build-essential autoconf libtool bison flex wget
+    apt-get autoremove -y
+    rm -rf /var/lib/apt/lists/*
+    rm -rf /parquet-mr
+    rm -rf /opt/hadoop/share/doc/*
+    rm -rf /opt/hadoop/share/hadoop/mapreduce
+    rm -rf /opt/hadoop/share/hadoop/yarn
+    rm -rf /opt/hadoop/share/hadoop/tools
+
+%environment
+    export JAVA_HOME=/usr/lib/jvm/java-11-openjdk
+    export PATH=$JAVA_HOME/bin:$PATH
+    export HADOOP_HOME=/opt/hadoop
+    export PATH=$PATH:$HADOOP_HOME/bin
+    export CLASSPATH=$(find /opt/hadoop -name '*.jar' -print | tr '\n' ':')
+    export APPTAINER_MAX_BIND_MOUNTS=512 # Does not suppress "INFO:    underlay of /etc/localtime required more than 50 (111) bind mounts"
+
+%runscript
+    java -cp '/opt/parquet-cli.jar:'"$CLASSPATH" org.apache.parquet.cli.Main "$@"
+
+%help
+    This image includes parquet-cli, built from source, to manage and interact with Parquet files. Use Java to run the jar file with commands.
