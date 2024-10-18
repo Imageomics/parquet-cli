@@ -12,6 +12,7 @@ First, pull the image from GHCR:
 ```bash
 apptainer pull oras://ghcr.io/imageomics/parquet-cli:latest
 ```
+> Docker image coming soon
 
 Move the image to your preferred location:
 
