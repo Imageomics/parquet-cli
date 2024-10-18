@@ -25,22 +25,35 @@ Run the container to inspect your Parquet file:
 ```bash
 apptainer run /preferred/path/parquet-cli_latest.sif <flags-and-commands> /path/to/file.parquet
 ```
+or
+```bash
+docker run --rm -v $(pwd):/data -w /data parquet-cli:latest <flags-and-commands> /path/to/file.parquet
+```
 
 For simpler usage, you can add an alias in your `~/.bashrc` file:
 
 ```bash
 alias parquet='apptainer --silent run --cleanenv /preferred/path/parquet-cli_latest.sif'
 ```
+or
+```bash
+alias parquet='docker run --rm -v $(pwd):/data -w /data parquet-cli:latest'
+```
 
 Then you can use the `parquet` command to inspect Parquet files:
 
 ```bash
-parquet <flags-and-commands> /path/to/file.parquet
+parquet <flags-and-commands> /path/to/file.parquet # with either apptainer or docker
 ```
+
 
 ## Building the Image
 To build the image from the definition file, run the following command:
 
 ```bash
 apptainer build <my-image>.sif parquet-cli.def
+```
+or
+```bash
+docker build -t parquet-cli:latest -f .
 ```
